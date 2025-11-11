@@ -25,12 +25,14 @@ class STTService:
         """
         # Сначала пробуем сервер НГУ
         if self._is_ngu_server_available():
+            logging.info("Сервер НГУ доступен для stt")
             try:
                 return self._transcribe_via_ngu(audio_path)
             except Exception as e:
                 logging.warning(f"Сервер НГУ недоступен: {e}")
         
         # Fallback на локальную модель
+        logging.info("Использую локальную модель для stt")
         return self._transcribe_local(audio_path)
     
     def _is_ngu_server_available(self) -> bool:
@@ -45,7 +47,7 @@ class STTService:
     def _transcribe_via_ngu(self, audio_path: str) -> Dict:
         """Транскрибация через сервер НГУ"""
         with open(audio_path, 'rb') as f:
-            files = {'file': f}
+            files = {'audio': f}
             response = requests.post(
                 f"{self.ngu_server_url}/stt",
                 files=files,

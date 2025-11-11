@@ -3,11 +3,12 @@ import json
 from stt_service import STTService
 from tts_service import TTSService
 import logging
+from logger import setup_logging
 import tempfile
 import os
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
+setup_logging() #настройка логгирования
 
 # Инициализация сервисов
 stt_service = STTService()
@@ -45,7 +46,8 @@ def speech_to_text():
         
         # распознается речь
         result = stt_service.transcribe(temp_audio)
-        print(f"Распознанный текст: {result["text"]}")
+        print(f"Распознанный текст для stt: {result["text"]}")
+        logging.debug(f"Распознанный текст для stt: {result["text"]}")
         
         # удаляю временный файл
         os.unlink(temp_audio)
@@ -73,6 +75,7 @@ def text_to_speech():
         
         text = data['text']
         language = data.get('language')  # ru, en, zh
+        logging.debug(f"Текст для синтеза речи tts: {text}")
         
         # синтезируется речь
         audio_path = tts_service.synthesize(text, language)
@@ -89,4 +92,4 @@ def text_to_speech():
         return json_response({"error": str(e)}, 500)
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8000, debug=True)
+    app.run(host='127.0.0.1', port=8000, debug=False)

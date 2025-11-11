@@ -16,19 +16,12 @@ class TTSService:
     
     def _init_local_models(self):
         """инициализация локальных TTS моделей"""
-        try:
-            #для русского языка модель silero
-            model_ru = torch.package.PackageImporter(Config.SILERO_MODEL_PATH).load_pickle("tts_models", "model")
-            self.local_models['silero_ru'] = model_ru
-            logging.info("Локальная Silero TTS модель загружена")
-
-        except Exception as e:
-            logging.warning(f"Не удалось загрузить Silero TTS: {e}")
-        
         # для английского и китайского использую Piper TTS
         try:
+            model_ru = PiperVoice.load(Config.PIPER_MODEL_PATH_RU)
             model_en = PiperVoice.load(Config.PIPER_MODEL_PATH_EN)
             model_zh = PiperVoice.load(Config.PIPER_MODEL_PATH_ZH)
+            self.local_models['piper_ru'] = model_ru
             self.local_models['piper_en'] = model_en
             self.local_models['piper_zh'] = model_zh
             logging.info("Локальная Piper TTS модель загружена")
@@ -42,12 +35,14 @@ class TTSService:
         """
         # сначала пробую соединиться с сервером НГУ
         if self._is_ngu_server_available():
+            logging.info("Сервер НГУ доступен для tts")
             try:
                 return self._synthesize_via_ngu(text, language)
             except Exception as e:
                 logging.warning(f"Сервер НГУ недоступен: {e}")
         
         # переключение на локальные модели, если сервер недоступен
+        logging.info("Использую локальную модель для tts")
         return self._synthesize_local(text, language)
     
     def _is_ngu_server_available(self) -> bool:
@@ -87,12 +82,18 @@ class TTSService:
         output_path = tempfile.mktemp(suffix='.wav')
         
         if language == 'ru':
+            # Piper_ru модель для английского
+            model = self.local_models['piper_ru']
+            with wave.open(output_path, "wb") as wav_file:
+                model.synthesize_wav(text, wav_file)
+            return output_path
+            '''
             # Silero модель для русского
             model = self.local_models['silero_ru']
             audio = model.apply_tts(text, speaker='kseniya', sample_rate=24000)
             sf.write(output_path, audio, 24000)
-            
             return output_path
+            '''
                 
         elif language == 'en':
             # Piper_en модель для английского
